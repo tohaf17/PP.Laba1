@@ -1,0 +1,12 @@
+name = "laba1_ada"
+description = ""
+version = "0.1.0-dev"
+
+authors = ["Anton Filipenko"]
+maintainers = ["Anton Filipenko <filipenkoa270@gmail.com>"]
+maintainers-logins = ["tohaf17"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = ""
+tags = []
+
+executables = ["laba1_ada"]
