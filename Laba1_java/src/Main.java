@@ -1,88 +1,101 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Main {
+    public static AtomicInteger activeThreads = new AtomicInteger(0);
+    private static final Scanner scanner = new Scanner(System.in);
+
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Input thread quantity");
-        int quantity = scanner.nextInt();
+        System.out.println("Input thread quantity:");
+        int quantity = Integer.parseInt(scanner.nextLine().trim());
 
-        List<TaskThread> threads = Create(quantity);
+        activeThreads.set(quantity);
 
-        for (TaskThread thread : threads) {
-            thread.startThread();
-        }
+        List<TaskThread> threads = createThreads(quantity);
 
-        Thread controller = new Thread(() -> {
-            for (TaskThread thread : threads) {
-                try {
-                    Thread.sleep(thread.getTimeUntilStop());
-                    thread.stopThread();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        });
-        controller.start();
-
-        try {
-            controller.join();
-            for (TaskThread thread : threads) {
-                thread.joinThread();
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        System.out.println("End");
+        threads.stream()
+                .map(Thread::new)
+                .forEach(Thread::start);
     }
-    public static List<TaskThread> Create(int quantity){
-        Random random = new Random();
+
+    public static List<TaskThread> createThreads(int quantity) {
+        System.out.println("Input durations in seconds:");
+
+        List<Integer> durations = Arrays.stream(scanner.nextLine().trim().split("\\s+"))
+                .filter(s -> !s.isEmpty())
+                .map(duration -> Integer.parseInt(duration) * 1000)
+                .collect(Collectors.toList());
+
+        System.out.println("Input steps:");
+
+        List<Integer> steps = Arrays.stream(scanner.nextLine().trim().split("\\s+"))
+                .filter(s -> !s.isEmpty())
+                .map(Integer::parseInt)
+                .collect(Collectors.toList());
+
         List<TaskThread> threads = new ArrayList<>();
 
-        for (int i = 0; i < quantity; i++) {
-            double step = random.nextDouble() * 10.0;
-            int sleepTime = random.nextInt(15000) + 10000; // від 10 до 25 секунд
-            threads.add(new TaskThread(i + 1, step, sleepTime));
-        }
+        threads.addAll(
+                IntStream.range(0, quantity)
+                        .mapToObj(i -> new TaskThread(steps.get(i), durations.get(i)))
+                        .collect(Collectors.toList())
+        );
+
         return threads;
     }
 }
 
 class TaskThread implements Runnable {
-    private Thread thread;
-    private int id;
-    private double step;
-    private int timeUntilStop;
-    private volatile boolean isRunning;
+    private int step;
+    private int duration;
+    private long id;
+    private long sum;
 
-    public TaskThread(int id, double step, int timeUntilStop) {
-        this.id = id;
+    private boolean isRunning = true;
+
+    public TaskThread(int step, int duration) {
         this.step = step;
-        this.timeUntilStop = timeUntilStop;
-        this.isRunning = true;
-        this.thread = new Thread(this);
+        this.duration = duration;
     }
 
-    public void startThread() { thread.start(); }
-    public void stopThread() { this.isRunning = false; }
-    public void joinThread() throws InterruptedException { thread.join(); }
-    public int getTimeUntilStop() { return timeUntilStop; }
+    public boolean isRunning() {
+        return isRunning;
+    }
+
+    public void setRunning(boolean running) {
+        this.isRunning = running;
+    }
 
     @Override
     public void run() {
-        double sum = 0.0;
-        double currentElement = 0.0;
-        long additions = 0;
+        this.id = Thread.currentThread().getId();
 
-        while (isRunning) {
-            sum += currentElement;
-            currentElement += step;
+        long additions = 0;
+        long startTime = System.currentTimeMillis();
+
+        while (isRunning && (System.currentTimeMillis() - startTime) < duration) {
+            sum += step;
             additions++;
         }
 
-        System.out.printf("Thread №%d: Sum = %e, Additions = %d, Step = %.2f%n", id, sum, additions, step);
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        long elapsedTime = System.currentTimeMillis() - startTime;
+
+        System.out.printf("Thread №%d: Sum = %.2E, Additions = %d, Step = %.2f, Time = %dms%n",
+                id, (double) sum, additions, (double) step, elapsedTime);
+
+        if (Main.activeThreads.decrementAndGet() == 0) {
+            System.out.println("All threads have completed their work.");
+        }
     }
 }

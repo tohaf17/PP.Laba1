@@ -1,103 +1,81 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 
 namespace Laba1
 {
     public class Program
     {
+        public static int ActiveThreads;
         public static void Main()
         {
             Console.WriteLine("Input thread quantity:");
             int quantity=int.Parse(Console.ReadLine());
-            List<TaskThread> threads=CreateWorkers(quantity);
-
-            foreach (var thread in threads)
-            {
-                thread.Start();
-            }
-
-            Thread controller = new Thread(() => ControllerTask(threads));
-            controller.Start();
-            controller.Join();
-            foreach (var worker in threads)
-            {
-                worker.Join();
-            }
-
-            Console.WriteLine("End");
+            ActiveThreads=quantity;
+            List<TaskThread> threads=CreateThreads(quantity);
+            threads.Select(thread => new Thread(thread.Run)).ToList().ForEach(thread => thread.Start());
+            
         }
-        public static List<TaskThread> CreateWorkers(int quantity)
+        public static List<TaskThread> CreateThreads(int quantity)
         {
-            Random random = new Random();
-            List<TaskThread> workers = new List<TaskThread>();
-            for (int i = 0; i < quantity; i++)
-            {
-                double step = random.NextDouble() * 10; 
-                int sleepTime = random.Next(1000, 10000); 
-                workers.Add(new TaskThread(i + 1, step, sleepTime));
-            }
-            return workers;
+            Console.WriteLine("Input durations in seconds:");
+
+            List<int> durations=Console.ReadLine()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(duration=>int.Parse(duration)*1000)
+                .ToList();
+            
+            Console.WriteLine("Input steps:");
+            
+            List<int> steps=Array.ConvertAll(Console.ReadLine().Split(' '), int.Parse).ToList();
+
+            List<TaskThread> threads = new List<TaskThread>();
+            threads.AddRange(
+                Enumerable.Range(0, quantity)
+                .Select(i => new TaskThread(steps[i], durations[i]))
+            );
+
+            return threads;
         }
 
-        public static void ControllerTask(List<TaskThread> threads)
-        {
-            foreach (var thread in threads)
-            {
-                Thread.Sleep(thread.TimeUntilStop);
-                thread.Stop();
-            }
-        }
     }
 
     public class TaskThread
     {
-        private Thread thread;
+        private int step;
+        private int duration;
         private int id;
-        private double step;
+        private long sum;
 
-        public int TimeUntilStop { get; private set; }
+        public bool IsRunning { get; set; } =true;
 
-        private volatile bool isRunning;
-
-        public TaskThread(int id, double step, int timeUntilStop)
+        public TaskThread(int step, int duration)
         {
-            this.id = id;
             this.step = step;
-            this.TimeUntilStop = timeUntilStop;
-            this.isRunning = true;
-            this.thread= new Thread(()=>Calculate());
+            this.duration = duration;
         }
 
-        public void Start()
+        public void Run()
         {
-            this.thread.Start();
-        }
+            this.id = Thread.CurrentThread.ManagedThreadId;
 
-        public void Stop()
-        {
-            this.isRunning = false;
-        }
-
-        public void Join()
-        {
-            this.thread.Join();
-        }
-
-        private void Calculate()
-        {
-            double sum = 0.0;
-            double currentElement = 0.0; 
             long additions = 0;
 
-            while (isRunning)
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            while (IsRunning && stopwatch.ElapsedMilliseconds < duration)
             {
-                sum += currentElement;
-                currentElement += step; 
+                sum += step;
                 additions++;
             }
-
-            Console.WriteLine($"Thread №{id}: Sum = {sum:E2}, Additions = {additions}, Step = {step:F2}");
+            Thread.Sleep(10);
+            Console.WriteLine($"Thread №{id}: Sum = {sum:E2}, Additions = {additions}, Step = {step:F2}, Time = {stopwatch.ElapsedMilliseconds}ms");
+            if(Interlocked.Decrement(ref Program.ActiveThreads) == 0)
+            {
+                Console.WriteLine("All threads have completed their work.");
+            }
         }
     }
 }

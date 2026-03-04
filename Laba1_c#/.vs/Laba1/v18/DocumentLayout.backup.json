@@ -1,9 +1,9 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\filip\\Desktop\\2 \u0441\u0435\u043C\u0435\u0441\u0442\u0440\\\u041F\u0430\u0440\u0430\u043B\u0435\u043B\u044C\u043D\u0456\\Laba1\\Laba1_c#\\",
+  "WorkspaceRootPath": "C:\\Users\\filip\\Desktop\\2 term\\POP\\Laba1\\Laba1_c#\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{2344FD15-E5C3-46BE-B5A9-D4747EAD3673}|Laba1\\Laba1.csproj|c:\\users\\filip\\desktop\\2 \u0441\u0435\u043C\u0435\u0441\u0442\u0440\\\u043F\u0430\u0440\u0430\u043B\u0435\u043B\u044C\u043D\u0456\\laba1\\laba1_c#\\laba1\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{2344FD15-E5C3-46BE-B5A9-D4747EAD3673}|Laba1\\Laba1.csproj|c:\\users\\filip\\desktop\\2 term\\pop\\laba1\\laba1_c#\\laba1\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{2344FD15-E5C3-46BE-B5A9-D4747EAD3673}|Laba1\\Laba1.csproj|solutionrelative:laba1\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
@@ -24,11 +24,11 @@
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\filip\\Desktop\\2 \u0441\u0435\u043C\u0435\u0441\u0442\u0440\\\u041F\u0430\u0440\u0430\u043B\u0435\u043B\u044C\u043D\u0456\\Laba1\\Laba1_c#\\Laba1\\Program.cs",
+              "DocumentMoniker": "C:\\Users\\filip\\Desktop\\2 term\\POP\\Laba1\\Laba1_c#\\Laba1\\Program.cs",
               "RelativeDocumentMoniker": "Laba1\\Program.cs",
-              "ToolTip": "C:\\Users\\filip\\Desktop\\2 \u0441\u0435\u043C\u0435\u0441\u0442\u0440\\\u041F\u0430\u0440\u0430\u043B\u0435\u043B\u044C\u043D\u0456\\Laba1\\Laba1_c#\\Laba1\\Program.cs*",
-              "RelativeToolTip": "Laba1\\Program.cs*",
-              "ViewState": "AgIAABAAAAAAAAAAAAAQwCQAAAA0AAAAAAAAAA==",
+              "ToolTip": "C:\\Users\\filip\\Desktop\\2 term\\POP\\Laba1\\Laba1_c#\\Laba1\\Program.cs",
+              "RelativeToolTip": "Laba1\\Program.cs",
+              "ViewState": "AgIAACkAAAAAAAAAAAAmwD4AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-02-27T19:07:53.98Z",
               "EditorCaption": ""
