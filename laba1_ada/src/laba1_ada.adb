@@ -3,30 +3,8 @@ with Ada.Integer_Text_IO; use Ada.Integer_Text_IO;
 with Ada.Long_Float_Text_IO;
 with Ada.Real_Time; use Ada.Real_Time;
 
-procedure Laba1_Ada is
+procedure laba1_Ada is
    package LLI_IO is new Ada.Text_IO.Integer_IO (Long_Long_Integer);
-
-   protected Active_Counter is
-      procedure Initialize (Count : Integer);
-      procedure Decrement_And_Check;
-   private
-      Current_Count : Integer := 0;
-   end Active_Counter;
-
-   protected body Active_Counter is
-      procedure Initialize (Count : Integer) is
-      begin
-         Current_Count := Count;
-      end Initialize;
-
-      procedure Decrement_And_Check is
-      begin
-         Current_Count := Current_Count - 1;
-         if Current_Count = 0 then
-            Put_Line ("All threads have completed their work.");
-         end if;
-      end Decrement_And_Check;
-   end Active_Counter;
 
    protected Console is
       procedure Print_Result
@@ -62,6 +40,13 @@ procedure Laba1_Ada is
       end Print_Result;
    end Console;
 
+   Max_Threads : constant Integer := 100; 
+   type Stop_Flags_Array is array (1 .. Max_Threads) of Boolean;
+   pragma Atomic_Components (Stop_Flags_Array);
+   Flags : Stop_Flags_Array := (others => False);
+
+   type Int_Array is array (Positive range <>) of Integer;
+
    task type Worker_Task is
       entry Start
         (Init_Step     : Long_Long_Integer;
@@ -76,7 +61,6 @@ procedure Laba1_Ada is
       Sum          : Long_Long_Integer := 0;
       Additions    : Long_Long_Integer := 0;
       Start_Time   : Time;
-      Run_Duration : Time_Span;
       Elapsed_Ms   : Integer;
    begin
       accept Start
@@ -89,10 +73,9 @@ procedure Laba1_Ada is
          Id          := Init_Id;
       end Start;
 
-      Start_Time   := Clock;
-      Run_Duration := Milliseconds (Duration_Ms);
+      Start_Time := Clock;
 
-      while Clock - Start_Time < Run_Duration loop
+      while not Flags(Id) loop
          Sum       := Sum + Step;
          Additions := Additions + 1;
       end loop;
@@ -108,8 +91,39 @@ procedure Laba1_Ada is
          Long_Float (Step),
          Elapsed_Ms);
 
-      Active_Counter.Decrement_And_Check;
    end Worker_Task;
+
+   task Stopper is
+      entry Run (Count : Integer; Durs : Int_Array);
+   end Stopper;
+
+   task body Stopper is
+      Local_Count : Integer;
+      Start_Time  : Time;
+      Elapsed     : Time_Span;
+      Done        : Boolean;
+   begin
+      accept Run (Count : Integer; Durs : Int_Array) do
+         Local_Count := Count;
+         Start_Time  := Clock;
+         
+         loop
+            Elapsed := Clock - Start_Time;
+            Done := True;
+            for I in 1 .. Local_Count loop
+               if not Flags(I) then
+                  if Elapsed >= Milliseconds (Durs(I)) then
+                     Flags(I) := True;
+                  else
+                     Done := False;
+                  end if;
+               end if;
+            end loop;
+            exit when Done;
+            delay 0.01;
+         end loop;
+      end Run;
+   end Stopper;
 
    Quantity : Integer;
 
@@ -118,7 +132,7 @@ begin
    Get (Quantity);
 
    declare
-      Durations : array (1 .. Quantity) of Integer;
+      Durations : Int_Array (1 .. Quantity);
       Steps     : array (1 .. Quantity) of Long_Long_Integer;
       Tasks     : array (1 .. Quantity) of Worker_Task;
    begin
@@ -133,10 +147,10 @@ begin
          LLI_IO.Get (Steps (I));
       end loop;
 
-      Active_Counter.Initialize (Quantity);
-
       for I in 1 .. Quantity loop
          Tasks (I).Start (Steps (I), Durations (I), I);
       end loop;
+
+      Stopper.Run (Quantity, Durations);
    end;
-end Laba1_Ada;
+end laba1_Ada;

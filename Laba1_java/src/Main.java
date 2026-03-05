@@ -1,101 +1,95 @@
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Main {
-    public static AtomicInteger activeThreads = new AtomicInteger(0);
+
     private static final Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {
         System.out.println("Input thread quantity:");
         int quantity = Integer.parseInt(scanner.nextLine().trim());
 
-        activeThreads.set(quantity);
-
         List<TaskThread> threads = createThreads(quantity);
 
-        threads.stream()
-                .map(Thread::new)
-                .forEach(Thread::start);
+        for (TaskThread thread : threads) {
+            new Thread(thread).start();
+        }
+
+        new Thread(() -> Stop(threads)).start();
+    }
+
+    public static void Stop(List<TaskThread> threads) {
+        long startTime = System.currentTimeMillis();
+
+        while (threads.stream().anyMatch(TaskThread::isRunning)) {
+            long elapsed = System.currentTimeMillis() - startTime;
+
+            for (TaskThread t : threads) {
+                if (t.isRunning() && elapsed >= t.getDuration()) {
+                    t.setRunning(false);
+                }
+            }
+
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        System.out.println("Stopper thread has finished.");
     }
 
     public static List<TaskThread> createThreads(int quantity) {
-        System.out.println("Input durations in seconds:");
+        System.out.println("Input durations in seconds (space separated):");
 
         List<Integer> durations = Arrays.stream(scanner.nextLine().trim().split("\\s+"))
-                .filter(s -> !s.isEmpty())
-                .map(duration -> Integer.parseInt(duration) * 1000)
+                .map(d -> Integer.parseInt(d) * 1000)
                 .collect(Collectors.toList());
 
-        System.out.println("Input steps:");
-
+        System.out.println("Input steps (space separated):");
         List<Integer> steps = Arrays.stream(scanner.nextLine().trim().split("\\s+"))
-                .filter(s -> !s.isEmpty())
                 .map(Integer::parseInt)
                 .collect(Collectors.toList());
 
-        List<TaskThread> threads = new ArrayList<>();
-
-        threads.addAll(
-                IntStream.range(0, quantity)
-                        .mapToObj(i -> new TaskThread(steps.get(i), durations.get(i)))
-                        .collect(Collectors.toList())
-        );
-
-        return threads;
+        return IntStream.range(0, quantity)
+                .mapToObj(i -> new TaskThread(steps.get(i), durations.get(i)))
+                .collect(Collectors.toList());
     }
 }
 
 class TaskThread implements Runnable {
-    private int step;
-    private int duration;
-    private long id;
-    private long sum;
+    private final int step;
+    private final int duration;
+    private long sum = 0;
 
-    private boolean isRunning = true;
+    private volatile boolean isRunning = true;
 
     public TaskThread(int step, int duration) {
         this.step = step;
         this.duration = duration;
     }
 
-    public boolean isRunning() {
-        return isRunning;
-    }
-
-    public void setRunning(boolean running) {
-        this.isRunning = running;
-    }
+    public boolean isRunning() { return isRunning; }
+    public void setRunning(boolean running) { this.isRunning = running; }
+    public int getDuration() { return duration; }
 
     @Override
     public void run() {
-        this.id = Thread.currentThread().getId();
-
+        long id = Thread.currentThread().getId();
         long additions = 0;
         long startTime = System.currentTimeMillis();
 
-        while (isRunning && (System.currentTimeMillis() - startTime) < duration) {
+        while (isRunning) {
             sum += step;
             additions++;
         }
 
-        try {
-            Thread.sleep(10);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
         long elapsedTime = System.currentTimeMillis() - startTime;
 
-        System.out.printf("Thread №%d: Sum = %.2E, Additions = %d, Step = %.2f, Time = %dms%n",
-                id, (double) sum, additions, (double) step, elapsedTime);
+        System.out.printf("Thread №%d: Sum = %.2E, Additions = %d, Step = %d.00, Time = %dms%n",
+                id, (double) sum, additions, step, elapsedTime);
 
-        if (Main.activeThreads.decrementAndGet() == 0) {
-            System.out.println("All threads have completed their work.");
-        }
+
     }
 }

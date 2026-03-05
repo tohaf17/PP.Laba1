@@ -8,15 +8,37 @@ namespace Laba1
 {
     public class Program
     {
-        public static int ActiveThreads;
         public static void Main()
         {
             Console.WriteLine("Input thread quantity:");
-            int quantity=int.Parse(Console.ReadLine());
-            ActiveThreads=quantity;
-            List<TaskThread> threads=CreateThreads(quantity);
-            threads.Select(thread => new Thread(thread.Run)).ToList().ForEach(thread => thread.Start());
-            
+            int quantity = int.Parse(Console.ReadLine());
+            List<TaskThread> threads = CreateThreads(quantity);
+
+            foreach (TaskThread thread in threads)
+            {
+                new Thread(thread.Run).Start();
+            }
+
+            Thread stopper = new Thread(() => Run(threads));
+            stopper.Start();
+        }
+        public static void Run(List<TaskThread> threads)
+        {
+            var stopwatch = Stopwatch.StartNew();
+
+            while (threads.Any(t => t.IsRunning))
+            {
+                long elapsed = stopwatch.ElapsedMilliseconds;
+                foreach (var thread in threads)
+                {
+                    if (thread.IsRunning && elapsed >= thread.Duration)
+                    {
+                        thread.IsRunning = false;
+                    }
+                }
+                Thread.Sleep(10); 
+            }
+            Console.WriteLine("All threads have completed their work.");
         }
         public static List<TaskThread> CreateThreads(int quantity)
         {
@@ -31,12 +53,13 @@ namespace Laba1
             
             List<int> steps=Array.ConvertAll(Console.ReadLine().Split(' '), int.Parse).ToList();
 
-            List<TaskThread> threads = new List<TaskThread>();
-            threads.AddRange(
-                Enumerable.Range(0, quantity)
-                .Select(i => new TaskThread(steps[i], durations[i]))
-            );
-
+            
+                List<TaskThread> threads = new List<TaskThread>();
+                threads.AddRange(
+                    Enumerable.Range(0, quantity)
+                    .Select(i => new TaskThread(steps[i], durations[i]))
+                );
+            
             return threads;
         }
 
@@ -44,38 +67,31 @@ namespace Laba1
 
     public class TaskThread
     {
-        private int step;
-        private int duration;
-        private int id;
-        private long sum;
-
-        public bool IsRunning { get; set; } =true;
-
+        public int Step { get; set; }
+        public int Duration { get; set; }
+        public volatile bool IsRunning=true;
         public TaskThread(int step, int duration)
         {
-            this.step = step;
-            this.duration = duration;
+            Step = step;
+            Duration = duration;
         }
 
         public void Run()
         {
-            this.id = Thread.CurrentThread.ManagedThreadId;
+            int id = Thread.CurrentThread.ManagedThreadId;
 
+            long sum = 0;
             long additions = 0;
 
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            while (IsRunning && stopwatch.ElapsedMilliseconds < duration)
+            while (IsRunning)
             {
-                sum += step;
+                sum += Step;
                 additions++;
             }
-            Thread.Sleep(10);
-            Console.WriteLine($"Thread №{id}: Sum = {sum:E2}, Additions = {additions}, Step = {step:F2}, Time = {stopwatch.ElapsedMilliseconds}ms");
-            if(Interlocked.Decrement(ref Program.ActiveThreads) == 0)
-            {
-                Console.WriteLine("All threads have completed their work.");
-            }
+            Console.WriteLine($"Thread №{id}: Sum = {sum:E2}, Additions = {additions}, Step = {Step:F2}, Time = {Duration}ms");
+            
         }
     }
 }
